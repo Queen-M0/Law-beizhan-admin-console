@@ -26,6 +26,7 @@ export type AdminFieldType =
   | 'date'
   | 'datetime'
   | 'json'
+  | 'imageUpload'
 
 export interface AdminSearchField {
   prop: string
@@ -47,6 +48,7 @@ export interface AdminFormField extends AdminSearchField {
   step?: number
   precision?: number
   disabled?: boolean
+  uploadBizType?: string
 }
 
 export interface AdminTableColumn {

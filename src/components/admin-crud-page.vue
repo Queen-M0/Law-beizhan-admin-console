@@ -176,6 +176,31 @@
                   :placeholder="field.placeholder || `请输入${field.label}`"
                 />
               </template>
+              <template v-else-if="field.type === 'imageUpload'">
+                <div class="image-upload-field">
+                  <el-upload
+                    action="#"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    :show-file-list="false"
+                    :disabled="field.disabled"
+                    :http-request="createImageUploadHandler(field)"
+                  >
+                    <el-button type="primary" :disabled="field.disabled">上传图片</el-button>
+                  </el-upload>
+                  <el-input
+                    v-model="formModel[field.prop]"
+                    clearable
+                    :disabled="field.disabled"
+                    :placeholder="field.placeholder || '上传后自动生成图片地址'"
+                  />
+                  <div v-if="formModel[field.prop]" class="image-upload-preview">
+                    <el-image :src="String(formModel[field.prop])" fit="cover" :preview-src-list="[String(formModel[field.prop])]" />
+                    <el-button text type="danger" :disabled="field.disabled" @click="formModel[field.prop] = ''">
+                      清空
+                    </el-button>
+                  </div>
+                </div>
+              </template>
               <template v-else-if="field.type === 'number'">
                 <el-input-number
                   v-model="formModel[field.prop]"
@@ -209,8 +234,9 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
-import { ElMessageBox } from 'element-plus'
-import type { FormInstance, FormRules } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import type { FormInstance, FormRules, UploadRequestOptions } from 'element-plus'
+import { uploadAdminImage } from '@/api/admin'
 import type {
   AdminFormField,
   AdminSearchField,
@@ -413,6 +439,18 @@ async function toggleStatus(row: RecordData) {
   await loadList()
 }
 
+async function handleImageUpload(field: AdminFormField, options: RecordData) {
+  const file = options.file as File
+  const result = await uploadAdminImage(file, field.uploadBizType || field.prop)
+  formModel[field.prop] = result.url
+  ElMessage.success('图片上传成功')
+  options.onSuccess?.(result)
+}
+
+function createImageUploadHandler(field: AdminFormField) {
+  return (options: UploadRequestOptions) => handleImageUpload(field, options as RecordData)
+}
+
 onMounted(() => {
   loadList()
 })
@@ -519,6 +557,25 @@ defineExpose({
 .editor-form {
   display: grid;
   gap: 8px;
+}
+
+.image-upload-field {
+  display: grid;
+  gap: 10px;
+}
+
+.image-upload-preview {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.image-upload-preview :deep(.el-image) {
+  width: 120px;
+  height: 76px;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
 }
 
 .drawer-actions {

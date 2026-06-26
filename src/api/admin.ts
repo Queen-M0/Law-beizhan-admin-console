@@ -35,6 +35,7 @@ export interface PersonListParams {
   pageNum?: number
   pageSize?: number
   name?: string
+  teamName?: string
   status?: number | string
   personType?: PersonType
 }
@@ -82,6 +83,20 @@ export function deletePerson(id: number) {
 
 export function updatePersonStatus(id: number, status: number) {
   return adminHttp.patch<ApiResponse<void>>(`/admin/persons/${id}/status`, { status }).then(unwrap)
+}
+
+export function uploadAdminImage(file: File, bizType = 'common') {
+  const formData = new FormData()
+  formData.append('file', file)
+  formData.append('bizType', bizType)
+
+  return adminHttp
+    .post<ApiResponse<{ url: string }>>('/admin/uploads/images', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    })
+    .then(unwrap)
 }
 
 export function listPracticeAreas(params: PracticeAreaParams) {

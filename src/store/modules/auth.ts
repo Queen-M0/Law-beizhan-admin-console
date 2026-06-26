@@ -108,7 +108,7 @@ export const useAuthStore = defineStore('auth', {
       clearUserStorage()
 
       if (redirect) {
-        window.location.href = '/login'
+        window.location.href = import.meta.env.BASE_URL + 'login'
       }
     },
   },

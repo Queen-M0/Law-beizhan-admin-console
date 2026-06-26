@@ -3,7 +3,7 @@ import routes from './routes'
 import { getToken } from '@/utils/storage'
 
 const router = createRouter({
-  history: createWebHistory(),
+  history: createWebHistory(import.meta.env.BASE_URL),
   routes,
   scrollBehavior: () => ({ top: 0 }),
 })
@@ -26,4 +26,3 @@ router.beforeEach((to) => {
 })
 
 export default router
-

@@ -40,8 +40,14 @@ export const practiceAreaOptions: AdminFieldOption[] = [
   { label: '投融资并购', value: 'investment-financing' },
 ]
 
-function buildCommonSearchFields(): AdminSearchField[] {
-  return [
+export const expertTeamOptions: AdminFieldOption[] = [
+  { label: '鉴定团队', value: '鉴定团队' },
+  { label: '心理咨询团队', value: '心理咨询团队' },
+  { label: '知识产权团队', value: '知识产权团队' },
+]
+
+function buildCommonSearchFields(personType: PersonType): AdminSearchField[] {
+  const fields: AdminSearchField[] = [
     { prop: 'name', label: '姓名', placeholder: '请输入姓名' },
     {
       prop: 'status',
@@ -51,10 +57,22 @@ function buildCommonSearchFields(): AdminSearchField[] {
       options: statusOptions,
     },
   ]
+
+  if (personType === 'expert') {
+    fields.splice(1, 0, {
+      prop: 'teamName',
+      label: '专家团队',
+      type: 'select',
+      placeholder: '请选择团队',
+      options: expertTeamOptions,
+    })
+  }
+
+  return fields
 }
 
-function buildCommonColumns(): AdminTableColumn[] {
-  return [
+function buildCommonColumns(personType: PersonType): AdminTableColumn[] {
+  const columns: AdminTableColumn[] = [
     { prop: 'id', label: 'ID', width: 90 },
     { prop: 'name', label: '姓名', width: 140 },
     { prop: 'avatarUrl', label: '头像', type: 'image', width: 100 },
@@ -72,6 +90,12 @@ function buildCommonColumns(): AdminTableColumn[] {
     { prop: 'updatedAt', label: '更新时间', minWidth: 180 },
     { label: '操作', type: 'actions', width: 180 },
   ]
+
+  if (personType === 'expert') {
+    columns.splice(3, 0, { prop: 'teamName', label: '专家团队', minWidth: 150 })
+  }
+
+  return columns
 }
 
 export function createPersonPageConfig(personType: PersonType): PersonPageConfig {
@@ -87,6 +111,7 @@ export function createPersonPageConfig(personType: PersonType): PersonPageConfig
     personType,
     defaultForm: () => ({
       personType,
+      teamName: '',
       name: '',
       title: '',
       avatarUrl: '',
@@ -100,8 +125,8 @@ export function createPersonPageConfig(personType: PersonType): PersonPageConfig
       sortOrder: 0,
       status: 1,
     }),
-    searchFields: buildCommonSearchFields(),
-    columns: buildCommonColumns(),
+    searchFields: buildCommonSearchFields(personType),
+    columns: buildCommonColumns(personType),
     formFields: [
       {
         prop: 'personType',
@@ -112,10 +137,22 @@ export function createPersonPageConfig(personType: PersonType): PersonPageConfig
         options: [{ label: title, value: personType }],
         disabled: true,
       },
+      ...(isLawyer
+        ? []
+        : [
+            {
+              prop: 'teamName',
+              label: '专家团队',
+              type: 'select' as const,
+              required: true,
+              span: 12,
+              options: expertTeamOptions,
+            },
+          ]),
       { prop: 'name', label: '姓名', required: true, span: 12 },
       { prop: 'title', label: '头衔', required: true, span: 12 },
-      { prop: 'avatarUrl', label: '头像地址', span: 12 },
-      { prop: 'coverImageUrl', label: '头图地址', span: 12 },
+      { prop: 'avatarUrl', label: '头像图片', type: 'imageUpload', uploadBizType: `${personType}-avatar`, span: 12 },
+      { prop: 'coverImageUrl', label: '头图图片', type: 'imageUpload', uploadBizType: `${personType}-cover`, span: 12 },
       { prop: 'summary', label: '简介', type: 'textarea', rows: 4, span: 24 },
       { prop: 'biography', label: '详情介绍', type: 'textarea', rows: 7, span: 24 },
       {
