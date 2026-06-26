@@ -19,6 +19,7 @@
 </template>
 
 <script setup lang="ts">
+import { onMounted } from 'vue'
 import AdminCrudPage from '@/components/admin-crud-page.vue'
 import {
   createPerson,
@@ -28,10 +29,14 @@ import {
   updatePerson,
   updatePersonStatus,
 } from '@/api/admin'
-import { createPersonPageConfig } from '@/person-config'
+import { createPersonPageConfig, loadPracticeAreaOptions } from '@/person-config'
 import type { PageResult } from '@/types/admin'
 
 const config = createPersonPageConfig('expert')
+
+onMounted(() => {
+  loadPracticeAreaOptions()
+})
 
 function defaultForm() {
   return config.defaultForm()

@@ -1,4 +1,6 @@
 import type { AdminFieldOption, AdminFormField, AdminSearchField, AdminTableColumn } from '@/types/admin'
+import { reactive } from 'vue'
+import { listPracticeAreas } from '@/api/admin'
 
 export type PersonType = 'lawyer' | 'expert'
 
@@ -28,17 +30,33 @@ export const statusOptions: AdminFieldOption[] = [
   { label: '禁用', value: 0 },
 ]
 
-export const practiceAreaOptions: AdminFieldOption[] = [
-  { label: '民商事诉讼', value: 'civil-litigation' },
-  { label: '企业合规', value: 'corporate-compliance' },
-  { label: '知识产权', value: 'intellectual-property' },
-  { label: '刑事辩护', value: 'criminal-defense' },
-  { label: '劳动争议', value: 'labor-dispute' },
-  { label: '婚姻家事', value: 'family-wealth' },
-  { label: '商事仲裁', value: 'arbitration' },
-  { label: '涉外法律', value: 'foreign-affairs' },
-  { label: '投融资并购', value: 'investment-financing' },
-]
+// 擅长领域选项：从后端 /admin/practice-areas 动态加载，value 必须是真实数字 ID
+// （后端 AdminPersonSaveDTO.practiceAreaIds 是 List<Long>，传字符串 slug 会反序列化失败 → “系统繁忙”）
+export const practiceAreaOptions = reactive<AdminFieldOption[]>([])
+
+let practiceAreaLoaded = false
+
+export async function loadPracticeAreaOptions(force = false): Promise<void> {
+  if (practiceAreaLoaded && !force) {
+    return
+  }
+  try {
+    const result = await listPracticeAreas({ pageNum: 1, pageSize: 200, status: 1 })
+    const records = (result?.records ?? []) as Array<Record<string, unknown>>
+    practiceAreaOptions.splice(
+      0,
+      practiceAreaOptions.length,
+      ...records.map((item) => ({
+        label: String(item.name ?? ''),
+        value: Number(item.id),
+      })),
+    )
+    practiceAreaLoaded = true
+  } catch {
+    // 加载失败不阻塞页面，下次进入再试
+    practiceAreaLoaded = false
+  }
+}
 
 export const expertTeamOptions: AdminFieldOption[] = [
   { label: '鉴定团队', value: '鉴定团队' },
@@ -159,7 +177,7 @@ export function createPersonPageConfig(personType: PersonType): PersonPageConfig
         prop: 'practiceAreaIds',
         label: '擅长领域',
         type: 'multiselect',
-        allowCreate: true,
+        allowCreate: false,
         multiple: true,
         span: 24,
         options: practiceAreaOptions,

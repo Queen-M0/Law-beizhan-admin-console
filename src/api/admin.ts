@@ -91,11 +91,7 @@ export function uploadAdminImage(file: File, bizType = 'common') {
   formData.append('bizType', bizType)
 
   return adminHttp
-    .post<ApiResponse<{ url: string }>>('/admin/uploads/images', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    })
+    .post<ApiResponse<{ url: string }>>('/admin/uploads/images', formData)
     .then(unwrap)
 }
 
