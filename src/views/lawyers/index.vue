@@ -29,7 +29,7 @@ import {
   updatePerson,
   updatePersonStatus,
 } from '@/api/admin'
-import { createPersonPageConfig, loadPracticeAreaOptions } from '@/person-config'
+import { createPersonPageConfig, loadPracticeAreaOptions, normalizePersonImagePayload } from '@/person-config'
 import type { PageResult } from '@/types/admin'
 
 const config = createPersonPageConfig('lawyer')
@@ -51,11 +51,11 @@ function getApi(id: number) {
 }
 
 function createApi(payload: Record<string, unknown>) {
-  return createPerson(payload)
+  return createPerson(normalizePersonImagePayload(payload))
 }
 
 function updateApi(id: number, payload: Record<string, unknown>) {
-  return updatePerson(id, payload)
+  return updatePerson(id, normalizePersonImagePayload(payload))
 }
 
 function deleteApi(id: number) {

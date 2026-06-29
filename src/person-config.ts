@@ -64,6 +64,16 @@ export const expertTeamOptions: AdminFieldOption[] = [
   { label: '知识产权团队', value: '知识产权团队' },
 ]
 
+export function normalizePersonImagePayload(payload: Record<string, unknown>) {
+  const imageUrl = String(payload.avatarUrl || payload.coverImageUrl || '')
+
+  return {
+    ...payload,
+    avatarUrl: imageUrl,
+    coverImageUrl: imageUrl,
+  }
+}
+
 function buildCommonSearchFields(personType: PersonType): AdminSearchField[] {
   const fields: AdminSearchField[] = [
     { prop: 'name', label: '姓名', placeholder: '请输入姓名' },
@@ -169,8 +179,7 @@ export function createPersonPageConfig(personType: PersonType): PersonPageConfig
           ]),
       { prop: 'name', label: '姓名', required: true, span: 12 },
       { prop: 'title', label: '头衔', required: true, span: 12 },
-      { prop: 'avatarUrl', label: '头像图片', type: 'imageUpload', uploadBizType: `${personType}-avatar`, span: 12 },
-      { prop: 'coverImageUrl', label: '头图图片', type: 'imageUpload', uploadBizType: `${personType}-cover`, span: 12 },
+      { prop: 'avatarUrl', label: '人物图片', type: 'imageUpload', uploadBizType: `${personType}-avatar`, span: 12 },
       { prop: 'summary', label: '简介', type: 'textarea', rows: 4, span: 24 },
       { prop: 'biography', label: '详情介绍', type: 'textarea', rows: 7, span: 24 },
       {
