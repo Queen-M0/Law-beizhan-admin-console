@@ -24,6 +24,7 @@ export type AdminFieldType =
   | 'multiselect'
   | 'switch'
   | 'date'
+  | 'daterange'
   | 'datetime'
   | 'json'
   | 'imageUpload'
@@ -37,6 +38,8 @@ export interface AdminSearchField {
   multiple?: boolean
   allowCreate?: boolean
   disabled?: boolean
+  startProp?: string
+  endProp?: string
 }
 
 export interface AdminFormField extends AdminSearchField {
@@ -49,6 +52,9 @@ export interface AdminFormField extends AdminSearchField {
   precision?: number
   disabled?: boolean
   uploadBizType?: string
+  group?: 'seo'
+  pattern?: RegExp
+  patternMessage?: string
 }
 
 export interface AdminTableColumn {

@@ -2,17 +2,18 @@
   <admin-crud-page
     tag="NEWS"
     title="资讯管理"
-    description="管理新闻资讯、分类、来源、封面图、发布时间和发布状态。"
+    description="管理行业动态、政策解读、普法知识和集团新闻。"
     :search-fields="searchFields"
     :columns="columns"
     :form-fields="formFields"
     :default-form="defaultForm"
     :load-api="loadApi"
-    :get-api="getApi"
     :create-api="createApi"
     :update-api="updateApi"
     :delete-api="deleteApi"
-    :status-api="updateStatusApi"
+    :status-api="statusApi"
+    :can-create="true"
+    :can-delete="true"
   />
 </template>
 
@@ -21,72 +22,101 @@ import AdminCrudPage from '@/components/admin-crud-page.vue'
 import {
   createNews,
   deleteNews,
-  getNews,
   listNews,
   updateNews,
   updateNewsStatus,
-} from '@/api/admin'
-import type { AdminFormField, AdminSearchField, AdminTableColumn, PageResult } from '@/types/admin'
+} from '@/api/news'
+import type { AdminFieldOption, AdminFormField, AdminSearchField, AdminTableColumn, PageResult } from '@/types/admin'
+
+const statusOptions: AdminFieldOption[] = [
+  { label: '启用', value: 1 },
+  { label: '禁用', value: 0 },
+]
+
+const categoryOptions: AdminFieldOption[] = [
+  { label: '行业动态', value: 'industry-dynamics' },
+  { label: '政策解读', value: 'policy-interpretation' },
+  { label: '普法知识', value: 'legal-knowledge' },
+  { label: '集团新闻', value: 'group-news' },
+]
+
+const slugPatternMessage = 'slug 只能使用英文小写、数字和中划线'
 
 const searchFields: AdminSearchField[] = [
-  { prop: 'title', label: '标题', placeholder: '请输入标题' },
-  { prop: 'categoryName', label: '分类', placeholder: '请输入分类' },
+  { prop: 'title', label: '标题关键词', placeholder: '请输入标题关键词' },
+  { prop: 'category_code', label: '分类', type: 'select', options: categoryOptions },
+  { prop: 'status', label: '状态', type: 'select', options: statusOptions },
   {
-    prop: 'status',
-    label: '状态',
-    type: 'select',
-    options: [
-      { label: '启用', value: 1 },
-      { label: '停用', value: 0 },
-    ],
+    prop: 'publish_time_range',
+    label: '发布时间范围',
+    type: 'daterange',
+    startProp: 'publish_time_start',
+    endProp: 'publish_time_end',
   },
 ]
 
 const columns: AdminTableColumn[] = [
-  { prop: 'id', label: 'ID', width: 90 },
-  { prop: 'title', label: '标题', minWidth: 180 },
-  { prop: 'categoryName', label: '分类', width: 120 },
+  { prop: 'id', label: 'ID', width: 80 },
+  { prop: 'title', label: '标题', minWidth: 220 },
+  { prop: 'category_name', label: '分类', width: 120 },
   { prop: 'source', label: '来源', width: 140 },
-  { prop: 'publishTime', label: '发布时间', width: 170 },
-  { prop: 'status', label: '状态', type: 'status', width: 110 },
+  { prop: 'publish_time', label: '发布时间', width: 170 },
+  { prop: 'is_top', label: '置顶', width: 90, formatter: (row) => (Number(row.is_top) === 1 ? '是' : '否') },
+  { prop: 'is_featured', label: '首页推荐', width: 100, formatter: (row) => (Number(row.is_featured) === 1 ? '是' : '否') },
+  { prop: 'status', label: '状态', type: 'status', width: 100 },
+  { prop: 'sort_num', label: '排序', width: 90 },
+  { prop: 'updated_at', label: '更新时间', minWidth: 170, formatter: (row) => String(row.updated_at || row.updatedAt || '-') },
   { label: '操作', type: 'actions', width: 180 },
 ]
 
 const formFields: AdminFormField[] = [
-  { prop: 'title', label: '标题', required: true, span: 24 },
+  { prop: 'category_code', label: '资讯分类', type: 'select', required: true, span: 12, options: categoryOptions },
+  { prop: 'title', label: '标题', required: true, span: 12 },
+  { prop: 'slug', label: 'slug', required: true, span: 12, patternMessage: slugPatternMessage },
+  { prop: 'publish_time', label: '发布时间', type: 'datetime', span: 12 },
   { prop: 'summary', label: '摘要', type: 'textarea', rows: 3, span: 24 },
-  { prop: 'content', label: '正文', type: 'textarea', rows: 8, required: true, span: 24 },
-  { prop: 'coverImage', label: '封面图', span: 12 },
-  { prop: 'publishTime', label: '发布时间', type: 'datetime', required: true, span: 12 },
-  { prop: 'author', label: '作者', span: 12 },
+  { prop: 'cover_image', label: '封面图', type: 'imageUpload', uploadBizType: 'news', span: 12, placeholder: '/uploads/news/xxx.jpg' },
+  { prop: 'cover_alt', label: '封面图 alt', span: 12 },
   { prop: 'source', label: '来源', span: 12 },
-  { prop: 'categoryName', label: '分类名称', span: 12 },
-  {
-    prop: 'status',
-    label: '状态',
-    type: 'select',
-    required: true,
-    span: 12,
-    options: [
-      { label: '启用', value: 1 },
-      { label: '停用', value: 0 },
-    ],
-  },
-  { prop: 'sortNum', label: '排序', type: 'number', span: 12 },
+  { prop: 'author', label: '作者', span: 12 },
+  { prop: 'content_html', label: '正文内容', type: 'textarea', rows: 8, span: 24 },
+  { prop: 'is_top', label: '置顶', type: 'switch', span: 12 },
+  { prop: 'is_featured', label: '首页推荐', type: 'switch', span: 12 },
+  { prop: 'sort_num', label: '排序', type: 'number', min: 0, step: 1, precision: 0, span: 12 },
+  { prop: 'status', label: '状态', type: 'select', required: true, span: 12, options: statusOptions },
+  { prop: 'seo_title', label: 'SEO 标题', group: 'seo', span: 24 },
+  { prop: 'seo_keywords', label: 'SEO 关键词', group: 'seo', span: 24 },
+  { prop: 'seo_description', label: 'SEO 描述', type: 'textarea', rows: 3, group: 'seo', span: 24 },
 ]
 
 function defaultForm() {
   return {
+    category_code: '',
+    category_name: '',
     title: '',
+    slug: '',
     summary: '',
-    content: '',
-    coverImage: '',
-    publishTime: '',
-    author: '',
+    content_html: '',
+    cover_image: '',
+    cover_alt: '',
     source: '',
-    categoryName: '',
+    author: '',
+    publish_time: '',
+    is_top: 0,
+    is_featured: 0,
     status: 1,
-    sortNum: 0,
+    sort_num: 0,
+    seo_title: '',
+    seo_keywords: '',
+    seo_description: '',
+  }
+}
+
+function withCategoryName(payload: Record<string, unknown>) {
+  const category = categoryOptions.find((option) => option.value === payload.category_code)
+  return {
+    ...payload,
+    category_name: category?.label || payload.category_name || '',
   }
 }
 
@@ -94,24 +124,19 @@ function loadApi(params: Record<string, unknown>) {
   return listNews(params) as Promise<PageResult<Record<string, unknown>>>
 }
 
-function getApi(id: number) {
-  return getNews(id)
-}
-
 function createApi(payload: Record<string, unknown>) {
-  return createNews(payload)
+  return createNews(withCategoryName(payload))
 }
 
 function updateApi(id: number, payload: Record<string, unknown>) {
-  return updateNews(id, payload)
+  return updateNews(id, withCategoryName(payload))
 }
 
 function deleteApi(id: number) {
   return deleteNews(id)
 }
 
-function updateStatusApi(id: number, status: number) {
+function statusApi(id: number, status: number) {
   return updateNewsStatus(id, status)
 }
 </script>
-

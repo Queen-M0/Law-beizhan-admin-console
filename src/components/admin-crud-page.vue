@@ -30,6 +30,18 @@
               />
             </el-select>
           </template>
+          <template v-else-if="field.type === 'daterange'">
+            <el-date-picker
+              v-model="searchModel[field.prop]"
+              type="daterange"
+              value-format="YYYY-MM-DD"
+              format="YYYY-MM-DD"
+              range-separator="至"
+              start-placeholder="开始日期"
+              end-placeholder="结束日期"
+              clearable
+            />
+          </template>
           <template v-else>
             <el-input
               v-model="searchModel[field.prop]"
@@ -51,6 +63,9 @@
       </el-form>
 
       <el-table :data="records" v-loading="loading" class="admin-table" stripe>
+        <template #empty>
+          <el-empty description="暂无数据" />
+        </template>
         <el-table-column
           v-for="column in columns"
           :key="column.label"
@@ -115,7 +130,7 @@
       <el-form ref="formRef" :model="formModel" :rules="rules" label-position="top" class="editor-form">
         <el-row :gutter="18">
           <el-col
-            v-for="field in formFields"
+            v-for="field in normalFormFields"
             :key="field.prop"
             :span="field.span || 12"
           >
@@ -223,6 +238,28 @@
           </el-col>
         </el-row>
 
+        <el-collapse v-if="seoFormFields.length" class="seo-collapse">
+          <el-collapse-item title="SEO 设置" name="seo">
+            <el-row :gutter="18">
+              <el-col
+                v-for="field in seoFormFields"
+                :key="field.prop"
+                :span="field.span || 12"
+              >
+                <el-form-item :label="field.label" :prop="field.prop">
+                  <el-input
+                    v-model="formModel[field.prop]"
+                    :type="field.type === 'textarea' ? 'textarea' : 'text'"
+                    :rows="field.rows || 3"
+                    :disabled="field.disabled"
+                    :placeholder="field.placeholder || `请输入${field.label}`"
+                  />
+                </el-form-item>
+              </el-col>
+            </el-row>
+          </el-collapse-item>
+        </el-collapse>
+
         <div class="drawer-actions">
           <el-button @click="drawerVisible = false">取消</el-button>
           <el-button type="primary" :loading="saving" @click="handleSubmit">保存</el-button>
@@ -236,7 +273,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules, UploadRequestOptions } from 'element-plus'
-import { uploadAdminImage } from '@/api/admin'
+import { uploadAdminFile } from '@/api/upload'
 import type {
   AdminFormField,
   AdminSearchField,
@@ -278,6 +315,9 @@ const formRef = ref<FormInstance>()
 const searchModel = reactive<RecordData>({})
 const formModel = reactive<RecordData>(props.defaultForm())
 
+const normalFormFields = computed(() => props.formFields.filter((field) => field.group !== 'seo'))
+const seoFormFields = computed(() => props.formFields.filter((field) => field.group === 'seo'))
+
 const rules = computed<FormRules<RecordData>>(() => {
   const ruleMap: Record<string, Array<Record<string, unknown>>> = {}
 
@@ -286,6 +326,28 @@ const rules = computed<FormRules<RecordData>>(() => {
 
     if (field.required) {
       fieldRules.push({ required: true, message: `${field.label}不能为空`, trigger: 'blur' })
+    }
+
+    if (field.pattern || field.prop === 'slug') {
+      const pattern = field.pattern || /^[a-z0-9-]+$/
+      fieldRules.push({
+        validator: (_rule: unknown, value: unknown, callback: (error?: Error) => void) => {
+          const text = String(value ?? '')
+
+          if (!text) {
+            callback()
+            return
+          }
+
+          if (!pattern.test(text)) {
+            callback(new Error(field.patternMessage || `${field.label}只能使用英文小写、数字和中划线`))
+            return
+          }
+
+          callback()
+        },
+        trigger: 'blur',
+      })
     }
 
     if (field.type === 'number') {
@@ -340,10 +402,33 @@ async function loadList() {
   loading.value = true
 
   try {
-    const result = await props.loadApi({
+    const params: RecordData = {
       ...searchModel,
       pageNum: pageNum.value,
       pageSize: pageSize.value,
+    }
+
+    props.searchFields.forEach((field) => {
+      if (field.type !== 'daterange') {
+        return
+      }
+
+      const rangeValue = searchModel[field.prop]
+      if (Array.isArray(rangeValue)) {
+        if (field.startProp) {
+          params[field.startProp] = rangeValue[0]
+        }
+
+        if (field.endProp) {
+          params[field.endProp] = rangeValue[1]
+        }
+      }
+
+      delete params[field.prop]
+    })
+
+    const result = await props.loadApi({
+      ...params,
     })
 
     records.value = result.records || []
@@ -441,7 +526,7 @@ async function toggleStatus(row: RecordData) {
 
 async function handleImageUpload(field: AdminFormField, options: RecordData) {
   const file = options.file as File
-  const result = await uploadAdminImage(file, field.uploadBizType || field.prop)
+  const result = await uploadAdminFile(file, field.uploadBizType || field.prop)
   formModel[field.prop] = result.url
   ElMessage.success('图片上传成功')
   options.onSuccess?.(result)
@@ -576,6 +661,17 @@ defineExpose({
   overflow: hidden;
   border: 1px solid #e2e8f0;
   border-radius: 10px;
+}
+
+.seo-collapse {
+  margin-top: 4px;
+  border-top: 1px solid #ebeef5;
+  border-bottom: 1px solid #ebeef5;
+}
+
+.seo-collapse :deep(.el-collapse-item__header) {
+  color: #334155;
+  font-weight: 600;
 }
 
 .drawer-actions {
