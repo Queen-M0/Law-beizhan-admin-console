@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <admin-crud-page
     tag="ORGANIZATION"
     title="机构管理"
@@ -8,6 +8,7 @@
     :form-fields="formFields"
     :default-form="defaultForm"
     :load-api="loadApi"
+    :get-api="getApi"
     :create-api="createApi"
     :update-api="updateApi"
     :delete-api="deleteApi"
@@ -22,6 +23,7 @@ import AdminCrudPage from '@/components/admin-crud-page.vue'
 import {
   createOrganization,
   deleteOrganization,
+  getOrganization,
   listOrganizations,
   updateOrganization,
   updateOrganizationStatus,
@@ -36,7 +38,7 @@ const statusOptions: AdminFieldOption[] = [
 const slugPatternMessage = 'slug 只能使用英文小写、数字和中划线'
 
 const searchFields: AdminSearchField[] = [
-  { prop: 'name', label: '机构名称', placeholder: '请输入机构名称' },
+  { prop: 'keyword', label: '机构名称', placeholder: '请输入机构名称' },
   { prop: 'type', label: '机构类型', placeholder: '请输入机构类型' },
   { prop: 'status', label: '状态', type: 'select', options: statusOptions },
 ]
@@ -45,67 +47,71 @@ const columns: AdminTableColumn[] = [
   { prop: 'id', label: 'ID', width: 80 },
   { prop: 'name', label: '机构名称', minWidth: 180 },
   { prop: 'type', label: '机构类型', width: 130 },
-  { prop: 'cover_image', label: '封面', type: 'image', width: 110 },
+  { prop: 'coverImage', label: '封面', type: 'image', width: 110 },
   { prop: 'principal', label: '负责人', width: 120 },
   { prop: 'phone', label: '电话', width: 140 },
   { prop: 'status', label: '状态', type: 'status', width: 100 },
-  { prop: 'sort_num', label: '排序', width: 90 },
-  { prop: 'updated_at', label: '更新时间', minWidth: 170, formatter: (row) => String(row.updated_at || row.updatedAt || '-') },
+  { prop: 'sortNum', label: '排序', width: 90 },
+  { prop: 'updatedAt', label: '更新时间', minWidth: 170 },
   { label: '操作', type: 'actions', width: 180 },
 ]
 
 const formFields: AdminFormField[] = [
   { prop: 'name', label: '机构名称', required: true, span: 12 },
-  { prop: 'short_name', label: '机构简称', span: 12 },
+  { prop: 'shortName', label: '机构简称', span: 12 },
   { prop: 'slug', label: 'slug', required: true, span: 12, patternMessage: slugPatternMessage },
   { prop: 'type', label: '机构类型', required: true, span: 12 },
-  { prop: 'cover_image', label: '封面图', type: 'imageUpload', uploadBizType: 'organization', span: 12, placeholder: '/uploads/organizations/xxx.jpg' },
-  { prop: 'cover_alt', label: '封面图 alt', span: 12 },
-  { prop: 'logo_url', label: 'Logo', type: 'imageUpload', uploadBizType: 'organization', span: 12, placeholder: '/uploads/organizations/xxx.jpg' },
-  { prop: 'logo_alt', label: 'Logo alt', span: 12 },
+  { prop: 'coverImage', label: '封面图', type: 'imageUpload', uploadBizType: 'organization', span: 12, placeholder: '/uploads/organizations/xxx.jpg' },
+  { prop: 'coverAlt', label: '封面图 alt', span: 12 },
+  { prop: 'logoUrl', label: 'Logo', type: 'imageUpload', uploadBizType: 'organization', span: 12, placeholder: '/uploads/organizations/xxx.jpg' },
+  { prop: 'logoAlt', label: 'Logo alt', span: 12 },
   { prop: 'principal', label: '负责人', span: 12 },
   { prop: 'phone', label: '电话', span: 12 },
   { prop: 'email', label: '邮箱', span: 12 },
-  { prop: 'website_url', label: '官网地址', span: 12 },
+  { prop: 'websiteUrl', label: '官网地址', span: 12 },
   { prop: 'address', label: '地址', span: 24 },
   { prop: 'intro', label: '简介', type: 'textarea', rows: 3, span: 24 },
   { prop: 'scope', label: '业务范围', type: 'textarea', rows: 3, span: 24 },
-  { prop: 'content_html', label: '正文内容', type: 'textarea', rows: 7, span: 24 },
-  { prop: 'sort_num', label: '排序', type: 'number', min: 0, step: 1, precision: 0, span: 12 },
+  { prop: 'contentHtml', label: '正文内容', type: 'textarea', rows: 7, span: 24 },
+  { prop: 'sortNum', label: '排序', type: 'number', min: 0, step: 1, precision: 0, span: 12 },
   { prop: 'status', label: '状态', type: 'select', required: true, span: 12, options: statusOptions },
-  { prop: 'seo_title', label: 'SEO 标题', group: 'seo', span: 24 },
-  { prop: 'seo_keywords', label: 'SEO 关键词', group: 'seo', span: 24 },
-  { prop: 'seo_description', label: 'SEO 描述', type: 'textarea', rows: 3, group: 'seo', span: 24 },
+  { prop: 'seoTitle', label: 'SEO 标题', group: 'seo', span: 24 },
+  { prop: 'seoKeywords', label: 'SEO 关键词', group: 'seo', span: 24 },
+  { prop: 'seoDescription', label: 'SEO 描述', type: 'textarea', rows: 3, group: 'seo', span: 24 },
 ]
 
 function defaultForm() {
   return {
     name: '',
-    short_name: '',
+    shortName: '',
     slug: '',
     type: '',
-    cover_image: '',
-    cover_alt: '',
-    logo_url: '',
-    logo_alt: '',
+    coverImage: '',
+    coverAlt: '',
+    logoUrl: '',
+    logoAlt: '',
     principal: '',
     phone: '',
     email: '',
     address: '',
-    website_url: '',
+    websiteUrl: '',
     intro: '',
     scope: '',
-    content_html: '',
-    sort_num: 0,
+    contentHtml: '',
+    sortNum: 0,
     status: 1,
-    seo_title: '',
-    seo_keywords: '',
-    seo_description: '',
+    seoTitle: '',
+    seoKeywords: '',
+    seoDescription: '',
   }
 }
 
 function loadApi(params: Record<string, unknown>) {
   return listOrganizations(params) as Promise<PageResult<Record<string, unknown>>>
+}
+
+function getApi(id: number) {
+  return getOrganization(id)
 }
 
 function createApi(payload: Record<string, unknown>) {
@@ -124,3 +130,4 @@ function statusApi(id: number, status: number) {
   return updateOrganizationStatus(id, status)
 }
 </script>
+

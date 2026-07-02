@@ -14,9 +14,10 @@ function unwrap<T>(response: AxiosResponse<ApiResponse<T>>) {
 export function uploadAdminFile(file: File, bizType = 'common') {
   const formData = new FormData()
   formData.append('file', file)
-  formData.append('bizType', bizType)
 
   return adminHttp
-    .post<ApiResponse<{ url: string; fileName?: string }>>('/admin/files/upload', formData)
+    .post<ApiResponse<{ url: string; fileName?: string }>>('/admin/files/upload', formData, {
+      params: { bizType },
+    })
     .then(unwrap)
 }

@@ -1,6 +1,7 @@
 import type { AxiosResponse } from 'axios'
 import { adminHttp } from './http'
 import type { PageResult } from '@/types/admin'
+import { normalizePageResult } from './page'
 
 type ApiResponse<T> = {
   code: number
@@ -88,10 +89,11 @@ export function updatePersonStatus(id: number, status: number) {
 export function uploadAdminImage(file: File, bizType = 'common') {
   const formData = new FormData()
   formData.append('file', file)
-  formData.append('bizType', bizType)
 
   return adminHttp
-    .post<ApiResponse<{ url: string }>>('/admin/uploads/images', formData)
+    .post<ApiResponse<{ url: string }>>('/admin/uploads/images', formData, {
+      params: { bizType },
+    })
     .then(unwrap)
 }
 
@@ -102,8 +104,30 @@ export function listPracticeAreas(params: PracticeAreaParams) {
   }
 
   return adminHttp
-    .get<ApiResponse<PageResult<Record<string, unknown>>>>('/admin/practice-areas', { params: nextParams })
+    .get<ApiResponse<PageResult<Record<string, unknown>> | Record<string, unknown>[]>>('/admin/practice-areas', { params: nextParams })
     .then(unwrap)
+    .then((data) => {
+      const page = normalizePageResult<Record<string, unknown>>(data)
+      let records = page.records
+
+      if (nextParams.name) {
+        const keyword = String(nextParams.name).trim().toLowerCase()
+        records = records.filter((item) => String(item.name || '').toLowerCase().includes(keyword))
+      }
+
+      if (nextParams.status !== undefined && nextParams.status !== null && nextParams.status !== '') {
+        records = records.filter((item) => Number(item.status) === Number(nextParams.status))
+      }
+
+      return {
+        ...page,
+        records,
+        total: records.length,
+        pageNum: Number(nextParams.pageNum || page.pageNum || 1),
+        pageSize: Number(nextParams.pageSize || page.pageSize || records.length || 10),
+        totalPages: Math.max(1, Math.ceil(records.length / Number(nextParams.pageSize || page.pageSize || records.length || 10))),
+      }
+    })
 }
 
 export function getPracticeArea(id: number) {

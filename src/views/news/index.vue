@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <admin-crud-page
     tag="NEWS"
     title="资讯管理"
@@ -8,6 +8,7 @@
     :form-fields="formFields"
     :default-form="defaultForm"
     :load-api="loadApi"
+    :get-api="getApi"
     :create-api="createApi"
     :update-api="updateApi"
     :delete-api="deleteApi"
@@ -22,6 +23,7 @@ import AdminCrudPage from '@/components/admin-crud-page.vue'
 import {
   createNews,
   deleteNews,
+  getNews,
   listNews,
   updateNews,
   updateNewsStatus,
@@ -43,85 +45,89 @@ const categoryOptions: AdminFieldOption[] = [
 const slugPatternMessage = 'slug 只能使用英文小写、数字和中划线'
 
 const searchFields: AdminSearchField[] = [
-  { prop: 'title', label: '标题关键词', placeholder: '请输入标题关键词' },
-  { prop: 'category_code', label: '分类', type: 'select', options: categoryOptions },
+  { prop: 'keyword', label: '标题关键词', placeholder: '请输入标题关键词' },
+  { prop: 'categoryCode', label: '分类', type: 'select', options: categoryOptions },
   { prop: 'status', label: '状态', type: 'select', options: statusOptions },
   {
-    prop: 'publish_time_range',
+    prop: 'publishTimeRange',
     label: '发布时间范围',
     type: 'daterange',
-    startProp: 'publish_time_start',
-    endProp: 'publish_time_end',
+    startProp: 'publishStartTime',
+    endProp: 'publishEndTime',
   },
 ]
 
 const columns: AdminTableColumn[] = [
   { prop: 'id', label: 'ID', width: 80 },
   { prop: 'title', label: '标题', minWidth: 220 },
-  { prop: 'category_name', label: '分类', width: 120 },
+  { prop: 'categoryName', label: '分类', width: 120 },
   { prop: 'source', label: '来源', width: 140 },
-  { prop: 'publish_time', label: '发布时间', width: 170 },
-  { prop: 'is_top', label: '置顶', width: 90, formatter: (row) => (Number(row.is_top) === 1 ? '是' : '否') },
-  { prop: 'is_featured', label: '首页推荐', width: 100, formatter: (row) => (Number(row.is_featured) === 1 ? '是' : '否') },
+  { prop: 'publishTime', label: '发布时间', width: 170 },
+  { prop: 'isTop', label: '置顶', width: 90, formatter: (row) => (Number(row.isTop) === 1 ? '是' : '否') },
+  { prop: 'isFeatured', label: '首页推荐', width: 100, formatter: (row) => (Number(row.isFeatured) === 1 ? '是' : '否') },
   { prop: 'status', label: '状态', type: 'status', width: 100 },
-  { prop: 'sort_num', label: '排序', width: 90 },
-  { prop: 'updated_at', label: '更新时间', minWidth: 170, formatter: (row) => String(row.updated_at || row.updatedAt || '-') },
+  { prop: 'sortNum', label: '排序', width: 90 },
+  { prop: 'updatedAt', label: '更新时间', minWidth: 170 },
   { label: '操作', type: 'actions', width: 180 },
 ]
 
 const formFields: AdminFormField[] = [
-  { prop: 'category_code', label: '资讯分类', type: 'select', required: true, span: 12, options: categoryOptions },
+  { prop: 'categoryCode', label: '资讯分类', type: 'select', required: true, span: 12, options: categoryOptions },
   { prop: 'title', label: '标题', required: true, span: 12 },
   { prop: 'slug', label: 'slug', required: true, span: 12, patternMessage: slugPatternMessage },
-  { prop: 'publish_time', label: '发布时间', type: 'datetime', span: 12 },
+  { prop: 'publishTime', label: '发布时间', type: 'datetime', span: 12 },
   { prop: 'summary', label: '摘要', type: 'textarea', rows: 3, span: 24 },
-  { prop: 'cover_image', label: '封面图', type: 'imageUpload', uploadBizType: 'news', span: 12, placeholder: '/uploads/news/xxx.jpg' },
-  { prop: 'cover_alt', label: '封面图 alt', span: 12 },
+  { prop: 'coverImage', label: '封面图', type: 'imageUpload', uploadBizType: 'news', span: 12, placeholder: '/uploads/news/xxx.jpg' },
+  { prop: 'coverAlt', label: '封面图 alt', span: 12 },
   { prop: 'source', label: '来源', span: 12 },
   { prop: 'author', label: '作者', span: 12 },
-  { prop: 'content_html', label: '正文内容', type: 'textarea', rows: 8, span: 24 },
-  { prop: 'is_top', label: '置顶', type: 'switch', span: 12 },
-  { prop: 'is_featured', label: '首页推荐', type: 'switch', span: 12 },
-  { prop: 'sort_num', label: '排序', type: 'number', min: 0, step: 1, precision: 0, span: 12 },
+  { prop: 'contentHtml', label: '正文内容', type: 'textarea', rows: 8, span: 24 },
+  { prop: 'isTop', label: '置顶', type: 'switch', span: 12 },
+  { prop: 'isFeatured', label: '首页推荐', type: 'switch', span: 12 },
+  { prop: 'sortNum', label: '排序', type: 'number', min: 0, step: 1, precision: 0, span: 12 },
   { prop: 'status', label: '状态', type: 'select', required: true, span: 12, options: statusOptions },
-  { prop: 'seo_title', label: 'SEO 标题', group: 'seo', span: 24 },
-  { prop: 'seo_keywords', label: 'SEO 关键词', group: 'seo', span: 24 },
-  { prop: 'seo_description', label: 'SEO 描述', type: 'textarea', rows: 3, group: 'seo', span: 24 },
+  { prop: 'seoTitle', label: 'SEO 标题', group: 'seo', span: 24 },
+  { prop: 'seoKeywords', label: 'SEO 关键词', group: 'seo', span: 24 },
+  { prop: 'seoDescription', label: 'SEO 描述', type: 'textarea', rows: 3, group: 'seo', span: 24 },
 ]
 
 function defaultForm() {
   return {
-    category_code: '',
-    category_name: '',
+    categoryCode: '',
+    categoryName: '',
     title: '',
     slug: '',
     summary: '',
-    content_html: '',
-    cover_image: '',
-    cover_alt: '',
+    contentHtml: '',
+    coverImage: '',
+    coverAlt: '',
     source: '',
     author: '',
-    publish_time: '',
-    is_top: 0,
-    is_featured: 0,
+    publishTime: '',
+    isTop: 0,
+    isFeatured: 0,
     status: 1,
-    sort_num: 0,
-    seo_title: '',
-    seo_keywords: '',
-    seo_description: '',
+    sortNum: 0,
+    seoTitle: '',
+    seoKeywords: '',
+    seoDescription: '',
   }
 }
 
 function withCategoryName(payload: Record<string, unknown>) {
-  const category = categoryOptions.find((option) => option.value === payload.category_code)
+  const category = categoryOptions.find((option) => option.value === payload.categoryCode)
   return {
     ...payload,
-    category_name: category?.label || payload.category_name || '',
+    categoryName: category?.label || payload.categoryName || '',
   }
 }
 
 function loadApi(params: Record<string, unknown>) {
   return listNews(params) as Promise<PageResult<Record<string, unknown>>>
+}
+
+function getApi(id: number) {
+  return getNews(id)
 }
 
 function createApi(payload: Record<string, unknown>) {
@@ -140,3 +146,4 @@ function statusApi(id: number, status: number) {
   return updateNewsStatus(id, status)
 }
 </script>
+

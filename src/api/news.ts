@@ -1,6 +1,7 @@
 import type { AxiosResponse } from 'axios'
 import { adminHttp } from './http'
 import type { PageResult } from '@/types/admin'
+import { cleanParams, normalizePageResult } from './page'
 
 type ApiResponse<T> = {
   code: number | string
@@ -12,16 +13,15 @@ function unwrap<T>(response: AxiosResponse<ApiResponse<T>>) {
   return response.data.data
 }
 
-function cleanParams(params: Record<string, unknown>) {
-  return Object.fromEntries(
-    Object.entries(params).filter(([, value]) => value !== '' && value !== undefined && value !== null),
-  )
-}
-
 export function listNews(params: Record<string, unknown>) {
   return adminHttp
     .get<ApiResponse<PageResult<Record<string, unknown>>>>('/admin/news', { params: cleanParams(params) })
     .then(unwrap)
+    .then(normalizePageResult)
+}
+
+export function getNews(id: number) {
+  return adminHttp.get<ApiResponse<Record<string, unknown>>>(`/admin/news/${id}`).then(unwrap)
 }
 
 export function createNews(data: Record<string, unknown>) {

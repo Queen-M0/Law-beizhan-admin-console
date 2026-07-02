@@ -8,7 +8,6 @@
     :form-fields="config.formFields"
     :default-form="defaultForm"
     :load-api="loadApi"
-    :get-api="getApi"
     :create-api="createApi"
     :update-api="updateApi"
     :delete-api="deleteApi"
@@ -23,7 +22,6 @@ import AdminCrudPage from '@/components/admin-crud-page.vue'
 import {
   createPracticeArea,
   deletePracticeArea,
-  getPracticeArea,
   listPracticeAreas,
   updatePracticeArea,
 } from '@/api/admin'
@@ -38,10 +36,6 @@ function defaultForm() {
 
 function loadApi(params: Record<string, unknown>) {
   return listPracticeAreas(params) as Promise<PageResult<Record<string, unknown>>>
-}
-
-function getApi(id: number) {
-  return getPracticeArea(id)
 }
 
 function createApi(payload: Record<string, unknown>) {

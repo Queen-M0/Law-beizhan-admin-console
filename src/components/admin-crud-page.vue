@@ -84,10 +84,10 @@
             <template v-else-if="column.type === 'image'">
               <el-image
                 v-if="String(row[column.prop || ''] || '')"
-                :src="String(row[column.prop || ''])"
+                :src="resolveImageUrl(row[column.prop || ''])"
                 fit="cover"
                 class="table-image"
-                :preview-src-list="[String(row[column.prop || ''])]"
+                :preview-src-list="[resolveImageUrl(row[column.prop || ''])]"
               />
               <span v-else>-</span>
             </template>
@@ -209,7 +209,11 @@
                     :placeholder="field.placeholder || '上传后自动生成图片地址'"
                   />
                   <div v-if="formModel[field.prop]" class="image-upload-preview">
-                    <el-image :src="String(formModel[field.prop])" fit="cover" :preview-src-list="[String(formModel[field.prop])]" />
+                    <el-image
+                      :src="resolveImageUrl(formModel[field.prop])"
+                      fit="cover"
+                      :preview-src-list="[resolveImageUrl(formModel[field.prop])]"
+                    />
                     <el-button text type="danger" :disabled="field.disabled" @click="formModel[field.prop] = ''">
                       清空
                     </el-button>
@@ -273,7 +277,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules, UploadRequestOptions } from 'element-plus'
-import { uploadAdminFile } from '@/api/upload'
+import { uploadAdminImage } from '@/api/admin'
 import type {
   AdminFormField,
   AdminSearchField,
@@ -398,6 +402,23 @@ function resetFormModel() {
   Object.assign(formModel, props.defaultForm())
 }
 
+function resolveImageUrl(value: unknown) {
+  const url = String(value || '')
+
+  if (!url || /^(https?:)?\/\//.test(url) || url.startsWith('data:') || url.startsWith('blob:')) {
+    return url
+  }
+
+  const normalizedUrl = url.startsWith('/') ? url : `/${url}`
+  const adminBaseUrl = String(import.meta.env.VITE_ADMIN_API_BASE_URL || '')
+
+  if (/^https?:\/\//.test(adminBaseUrl)) {
+    return new URL(normalizedUrl, adminBaseUrl).toString()
+  }
+
+  return normalizedUrl
+}
+
 async function loadList() {
   loading.value = true
 
@@ -431,8 +452,8 @@ async function loadList() {
       ...params,
     })
 
-    records.value = result.records || []
-    total.value = result.total || 0
+    records.value = Array.isArray(result.records) ? result.records : Array.isArray((result as RecordData).list) ? (result as RecordData).list : []
+    total.value = Number(result.total ?? (result as RecordData).totalCount ?? records.value.length)
   } finally {
     loading.value = false
   }
@@ -526,7 +547,8 @@ async function toggleStatus(row: RecordData) {
 
 async function handleImageUpload(field: AdminFormField, options: RecordData) {
   const file = options.file as File
-  const result = await uploadAdminFile(file, field.uploadBizType || field.prop)
+  const bizType = field.uploadBizType || field.prop
+  const result = await uploadAdminImage(file, bizType)
   formModel[field.prop] = result.url
   ElMessage.success('图片上传成功')
   options.onSuccess?.(result)
